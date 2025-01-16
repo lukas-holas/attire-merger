@@ -27,6 +27,21 @@ base = {
     "procedures":  []
 }
 
+# "steps" properties to remove
+properties_to_remove = ["process-id", "exit-code", "is-timeout"]
+
+def remove_properties(procedure):
+    for step in procedure["steps"]:
+        for prop in properties_to_remove:
+            if prop in step:
+                del step[prop]
+    return procedure
+
+def update_order(procedures):
+    for i, procedure in enumerate(procedures):
+        procedure["order"] = i+1
+    return procedures
+
 if __name__ == "__main__":
 
     arguments = sys.argv
@@ -51,7 +66,7 @@ if __name__ == "__main__":
                 if len(json_obj["procedures"])>1:
                     print(f"Skipping file: {filename} because it has more than 1 procedure(?)")
 
-                base["procedures"].append(json_obj["procedures"][0])
+                base["procedures"].append(remove_properties(json_obj["procedures"][0]))
     elif arguments[1] == "-csv":
         print("Processing ./input/*csv files.")
         for filename in os.listdir("./input/"):
@@ -95,5 +110,7 @@ if __name__ == "__main__":
 
                         base["procedures"].append(procedure)
     
+    # Sort the procedures by the time-start of the first step
+    base["procedures"] = update_order(sorted(base["procedures"], key=lambda x: x["steps"][0]["time-start"]))
     with open('./output/output.json', 'w') as f:
         json.dump(base, f, indent=4)
